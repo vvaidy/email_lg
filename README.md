@@ -16,3 +16,6 @@ streamlit run Response_Testrig.py
 
 ```
 
+Obviously you need to make sure you have ollama running a well as API keys specified in the `.py` file.
+
+
