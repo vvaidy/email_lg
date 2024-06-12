@@ -1,9 +1,10 @@
 # Based on Sam Witteveen's YT Video: https://youtu.be/lvQ96Ssesfk?si=FPy8LSaDxacijl7e
 # Sam Witteveen's github is: @samwit
-# Sam's Colab Notebook:
+# Sam's Colab Notebook that this is based on:
 # https://colab.research.google.com/drive/1WemHvycYcoNTDr33w7p2HL3FF72Nj88i?usp=sharing#scrollTo=jJhoLxciS906
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from csagents import run_responder, INITIAL_STATE
 
@@ -24,15 +25,17 @@ Paul
 """
 st.set_page_config(layout="wide")
 
-st.title("Customer Service Agents Example")
-st.write("This is a simple example of a customer service agent that can respond to emails.")
+st.title("Customer Service Workflow Example")
+left_column, right_column = st.columns(2)
 
-INITIAL_STATE["customer_email"] = st.text_area(
-    "Customer Email", INITIAL_STATE["customer_email"],
-    height=320)
 
-if st.button("Respond to email"):
-    with st.spinner("Generating Response..."):
-        response = run_responder()
-    st.markdown("# The response from the agent is:")
-    st.info(response)
+with left_column:
+    customer_email = st.text_area(
+        "Customer Email", INITIAL_STATE["customer_email"],
+        height=320)
+    if st.button("Respond"):
+        with st.spinner("Generating Response..."):
+            INITIAL_STATE["customer_email"] = customer_email
+            response = run_responder()
+        with right_column:
+            st.info(response)
