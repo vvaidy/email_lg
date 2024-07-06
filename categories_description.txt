@@ -1,0 +1,1 @@
+{"price_enquiry": "used when someone is asking for information about pricing", "customer_complaint": "used when someone is complaining about something", "product_enquiry": "used when someone is asking for information about a product feature", "customer_feedback": "used when someone is giving feedback about a product"}
