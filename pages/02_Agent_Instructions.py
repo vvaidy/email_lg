@@ -115,5 +115,8 @@ if(base_option == "Categorizer"):
                 del result_instruction['']
             print(result_description)
             print(result_instruction)
+            # Currently needed, until CSAGENTS gets updated. A restart of the program is needed for the saved info to be used
+            json.dump(result_description, open("categories_description.txt", 'w'))
+            json.dump(result_instruction, open("categories_instruction.txt", 'w'))
             statechange(INITIAL_STATE,"agent_descriptions",result_description,True)
             statechange(INITIAL_STATE,"agent_instructions",result_instruction,True)
