@@ -49,6 +49,9 @@ def write_markdown_file(content, filename):
 
 INITIAL_STATE = {"customer_email": None, "organizational_settings": None, "research_info": None, "agent_instructions": None, "agent_descriptions": None, "num_steps":0}
 
+with open("initialstate.json") as file:
+    INITIAL_STATE = json.load(file)
+
 # Basic Chains
 # Categorize EMAIL
 # Research Router
@@ -60,13 +63,12 @@ INITIAL_STATE = {"customer_email": None, "organizational_settings": None, "resea
 
 #Categorize EMAIL
 
-CATEGORIZER_PROMPT = email_categorizer_default + category_description_to_string("categories_description.txt") + """
+CATEGORIZER_PROMPT = email_categorizer_default + description_to_string(INITIAL_STATE.get("agent_descriptions")) + """
  off_topic - when it doesnt relate to any other category
 
-Output only a single word which should be a single category from the following category list:
- ('possible_adversarial_attack', 'price_equiry', 'customer_complaint', 'product_enquiry', 'customer_feedback', 'off_topic')
+Output only a single word which should be a single category from the above list
  eg:
-'price_enquiry'
+'off_topic'
 
 EMAIL CONTENT:\n\n {customer_email} \n\n
 <|eot_id|>
@@ -99,9 +101,6 @@ email_category_generator = categorizer_prompt_template | GROQ_LLM | StrOutputPar
 # Thanks,
 # Paul
 # """
-
-with open("initialstate.json") as file:
-    INITIAL_STATE = json.load(file)
 
 # email_category = email_category_generator.invoke({"customer_email": CUSTOMER_EMAIL})
 # print(f"Category: {email_category}")
@@ -184,7 +183,7 @@ email responses to customers.
 You will take the customer email provided as CUSTOMER_EMAIL below
 from a customer, the email category provided as EMAIL_CATEGORY below
 and the added research from the research agent and you will write a polite and professional email
-in a helpful and friendly  manner.""" + category_instruction_to_string("categories_instruction.txt") + """
+in a helpful and friendly  manner.""" + instruction_to_string(INITIAL_STATE.get('agent_instructions')) + """
 You never make up information that hasn't been provided by the research_info or in the initial_email.
 Always sign off the emails in appropriate manner and from the provided RESPONDER_SIGNATURE.
 
