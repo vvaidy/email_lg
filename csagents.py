@@ -32,7 +32,13 @@ TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 
 NUM_SEARCH_RESULTS = 3
 
-CHAT_MODEL="llama3-8b-8192"
+INITIAL_STATE = {"model": None, "customer_email": None, "organizational_settings": None, "research_info": None, "agent_instructions": None, "agent_descriptions": None, "num_steps":0}
+
+with open("initialstate.json") as file:
+    INITIAL_STATE = json.load(file)
+
+CHAT_MODEL= INITIAL_STATE.get("model")
+print(CHAT_MODEL)
 
 GROQ_LLM = ChatGroq(model=CHAT_MODEL, api_key=GROQ_API_KEY)
 
@@ -47,10 +53,7 @@ def write_markdown_file(content, filename):
   with open(f"{filename}.md", "w") as f:
     f.write(content)
 
-INITIAL_STATE = {"customer_email": None, "organizational_settings": None, "research_info": None, "agent_instructions": None, "agent_descriptions": None, "num_steps":0}
 
-with open("initialstate.json") as file:
-    INITIAL_STATE = json.load(file)
 
 # Basic Chains
 # Categorize EMAIL
