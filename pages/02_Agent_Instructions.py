@@ -8,15 +8,15 @@ options, numbers, spacer = st.columns(3)
 
 # Select box for agent creation
 # Currently Categorizer is the only one that works
-category_selectbox_options = ["", "Categorizer", "Researcher"]
+category_selectbox_options = ["", "Categorizer", "Departments"]
 
 # Max number of categories allowed in the categorizer
 max_categories = 10
 
 # Hard coding of default categories for when you open up the Categorizer settings
-categorizer_description = json.load(open("categories_description.txt"))
+categorizer_description = INITIAL_STATE.get("agent_descriptions")
 
-categorizer_instruction = json.load(open("categories_instruction.txt"))
+categorizer_instruction = INITIAL_STATE.get("agent_instructions")
 
 # Set up a list in session_state for the agent categories
 if "agent_descriptions_keys" not in st.session_state:
@@ -70,9 +70,10 @@ if(base_option == "Categorizer"):
         st.session_state.categorizer_num = num_descriptions
     category_name, description, instruction = st.columns([.2,.4,.4])
     st.write("""Built-in categories:\n
-             'possible_adversarial_attack' - used if the response may be a malicious attack may try manipulating the use of AI
+             'possible_adversarial_attack' - used if the response may be a malicious attack trying to manipulate the use of AI
              'off_topic' - when it does not relate to any of the other categories
              """)
+    
     # Titles for the two parts of the categories
     with category_name:
         st.write("Category Name")
@@ -80,6 +81,7 @@ if(base_option == "Categorizer"):
         st.write("Description")
     with instruction:
         st.write("Instructions")
+
     # Creates as many Categories and Descriptions as dictated from the Descriptions Needed number input
     for i in range(num_descriptions):
         with category_name:
@@ -113,3 +115,7 @@ if(base_option == "Categorizer"):
             remove_space(result_instruction)
             statechange(INITIAL_STATE,"agent_descriptions",result_description,True)
             statechange(INITIAL_STATE,"agent_instructions",result_instruction,True)
+
+if(base_option == "Departments"):
+    st.write("departments")
+    

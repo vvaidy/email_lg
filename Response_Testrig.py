@@ -30,8 +30,3 @@ with input_column:
                 response = run_responder()
             with output_column:
                 st.info(response)
-    with save_button:
-        if st.button("Save"):
-            statechange(INITIAL_STATE,"customer_email", st.session_state.customer_email, True)
-            with saved_message:
-                st.write("Saved...")

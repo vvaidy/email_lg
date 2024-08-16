@@ -32,13 +32,16 @@ TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 
 NUM_SEARCH_RESULTS = 3
 
-INITIAL_STATE = {"model": None, "customer_email": None, "organizational_settings": None, "research_info": None, "agent_instructions": None, "agent_descriptions": None, "num_steps":0}
+INITIAL_STATE = {"model": None, "customer_email": None, "organizational_settings": None, "research_info": None, "agent_instructions": None, "agent_descriptions": None, "num_steps": 0, "responder_signature": None, "polite_wait": None}
+PROMPT_STATE = {"research_router_instructions": None, "search_keyword_modifier": None, "draft_email_modifier": None}
 
 with open("initialstate.json") as file:
     INITIAL_STATE = json.load(file)
 
+with open("promptstate.json") as file:
+    PROMPT_STATE = json.load(file)
+
 CHAT_MODEL= INITIAL_STATE.get("model")
-print(CHAT_MODEL)
 
 GROQ_LLM = ChatGroq(model=CHAT_MODEL, api_key=GROQ_API_KEY)
 
@@ -53,8 +56,6 @@ def write_markdown_file(content, filename):
   with open(f"{filename}.md", "w") as f:
     f.write(content)
 
-
-
 # Basic Chains
 # Categorize EMAIL
 # Research Router
@@ -66,7 +67,8 @@ def write_markdown_file(content, filename):
 
 #Categorize EMAIL
 
-CATEGORIZER_PROMPT = email_categorizer_default + description_to_string(INITIAL_STATE.get("agent_descriptions")) + """
+CATEGORIZER_PROMPT = email_categorizer_default + """
+{agent_descriptions}
  off_topic - when it doesnt relate to any other category
 
 Output only a single word which should be a single category from the above list
@@ -80,7 +82,8 @@ EMAIL CONTENT:\n\n {customer_email} \n\n
 
 categorizer_prompt_template = PromptTemplate(
   template=CATEGORIZER_PROMPT,
-  input_variables=["customer_email"]
+
+  input_variables=["customer_email","agent_descriptions"]
   )
 
 # set up the category generator as a chain
@@ -119,13 +122,7 @@ You are given the email and an independent evaluation of the category of the ema
 
 Use the following criteria to decide how to route the email:
 
-If it is marked as 'possible_adversarial_attack' then choose 'read_with_care_and_respond'
-
-If the customer email only requires a simple response and appears to be feedback
-or a thank you just choose 'draft_email' for easily answered.
-
-If the email requires more research such as a web search or recovering information
-prior to responding choose 'research_info'
+{research_router_instructions}
 
 Return the response as just JSON with a single key 'router_decision' and no premable
 or explanation. The value of the key should be one of the following:
@@ -139,7 +136,7 @@ EMAIL_CATEGORY: {email_category} \n
 
 research_router_prompt_template = PromptTemplate(
     template= RESEARCH_ROUTER_PROMPT ,
-    input_variables=["customer_email","email_category"],
+    input_variables=["customer_email","email_category","research_router_instructions"],
 )
 
 research_router = research_router_prompt_template | GROQ_LLM | JsonOutputParser()
@@ -149,11 +146,12 @@ research_router = research_router_prompt_template | GROQ_LLM | JsonOutputParser(
 # )
 # print(f"Routing Decision: {routing_decision}")
 
-# Search Keywords
+    # Search Keywords
 SEARCH_KEYWORDS_PROMPT = """
-<|begin_of_text|><|start_header_id|>system<|end_header_id|>""" + INITIAL_STATE["agent_settings"] + INITIAL_STATE["organizational_settings"] + """
+<|begin_of_text|><|start_header_id|>system<|end_header_id|> {agent_settings} {organizational_settings}
 Given the CUSTOMER_EMAIL and EMAIL_CATEGORY find the best keywords that will
 provide the best and most helpful search results to write the final email response.
+{search_modifier}
 
 Return just a JSON object with a single key 'search_keywords' with no more than 3 keywords
 and no preamble or explanation.
@@ -165,7 +163,7 @@ EMAIL_CATEGORY: {email_category} \n
 
 search_keyword_prompt_template = PromptTemplate(
     template=SEARCH_KEYWORDS_PROMPT,
-    input_variables=["customer_email","email_category"],
+    input_variables=["agent_settings","organizational_settings","customer_email","email_category", "search_modifier"],
 )
 
 search_keyword_generator = search_keyword_prompt_template | GROQ_LLM | JsonOutputParser()
@@ -176,17 +174,17 @@ search_keyword_generator = search_keyword_prompt_template | GROQ_LLM | JsonOutpu
 
 # Write Draft Email
 
-
 # NEED TO FIX HOW CATEGORIES IS CALLED
 DRAFT_EMAIL_PROMPT = """
 <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 You are an Email Customer Support Agent who writes short helpful and to-the-point
 email responses to customers.
-""" + INITIAL_STATE["organizational_settings"] + """
+{organizational_settings}
 You will take the customer email provided as CUSTOMER_EMAIL below
 from a customer, the email category provided as EMAIL_CATEGORY below
 and the added research from the research agent and you will write a polite and professional email
-in a helpful and friendly  manner.""" + instruction_to_string(INITIAL_STATE.get('agent_instructions')) + """
+in a helpful and friendly  manner. {agent_instructions}
+{draft_email_modifier}
 You never make up information that hasn't been provided by the research_info or in the initial_email.
 Always sign off the emails in appropriate manner and from the provided RESPONDER_SIGNATURE.
 
@@ -196,13 +194,14 @@ Return the email a JSON with a single key 'draft_email' and no preamble or expla
 CUSTOMER_EMAIL: {customer_email} \n
 EMAIL_CATEGORY: {email_category} \n
 RESEARCH_INFO: {research_info} \n
-RESPONDER_SIGNATURE: Sarah the Resident Manager \n
+RESPONDER_SIGNATURE: {responder_signature} \n
 <|eot_id|><|start_header_id|>assistant<|end_header_id|>
 """
 
+print(DRAFT_EMAIL_PROMPT)
 draft_email_prompt_template = PromptTemplate(
     template=DRAFT_EMAIL_PROMPT,
-    input_variables=["customer_email","email_category","research_info"]
+    input_variables=["organizational_settings","agent_instructions","customer_email","email_category","research_info", "responder_signature", "draft_email_modifier"]
 )
 
 draft_email_generator = draft_email_prompt_template | GROQ_LLM | JsonOutputParser()
@@ -211,7 +210,6 @@ draft_email_generator = draft_email_prompt_template | GROQ_LLM | JsonOutputParse
 #     {"customer_email": CUSTOMER_EMAIL, "email_category":email_category, "research_info":None}
 # )
 # print(f"Draft Email: {draft_email}")
-
 
 ### TOOL SETUP
 ### SEARCH TOOL
@@ -232,6 +230,7 @@ class ResponderState(TypedDict):
         research_info: list of documents
         info_needed: whether or not to add search info
         num_steps: number of steps we've executed in the workflow
+        responder_signature: signature for the end of the draft email
     """
     customer_email : str
     email_category : str
@@ -239,6 +238,7 @@ class ResponderState(TypedDict):
     research_info : List[str]
     info_needed : bool
     num_steps : int
+    responder_signature: str
 
 ### NODES IN THE WORKFLOW GRAPH
 # The nodes in the workflow graph are functions that take the current state of the graph
@@ -267,7 +267,7 @@ def categorize_email(state: ResponderState) -> ResponderState:
         The updated state of the graph.
     """
     print("Categorizing email ...")    
-    email_category = email_category_generator.invoke({"customer_email": state["customer_email"]})
+    email_category = email_category_generator.invoke({"customer_email": state["customer_email"], "agent_descriptions": description_to_string(INITIAL_STATE.get("agent_descriptions"))})
     num_steps = state["num_steps"] + 1
     print(f"Email categorized as: {email_category}")
     return {**state, "email_category": email_category, "num_steps": num_steps}
@@ -284,9 +284,9 @@ def research_info_search(state: ResponderState) -> ResponderState:
     Returns:
         The updated state of the graph.
     """
-    print("Figuring out search keywords ... for Org Prompt: " + INITIAL_STATE["organizational_settings"])
+    print("Figuring out search keywords ...")
     generated_keywords = search_keyword_generator.invoke(
-        {"customer_email": state["customer_email"], "email_category": state["email_category"]}
+        {"customer_email": state["customer_email"], "email_category": state["email_category"], "agent_settings": INITIAL_STATE["agent_settings"],"organizational_settings": INITIAL_STATE["organizational_settings"], "search_modifier": PROMPT_STATE["search_keyword_modifier"] }
     )
     num_steps = state["num_steps"] + 1
     keywords = generated_keywords["search_keywords"]
@@ -313,6 +313,10 @@ def draft_email_writer(state: ResponderState) -> ResponderState:
             "customer_email": state["customer_email"],
             "email_category": state["email_category"],
             "research_info": state["research_info"],
+            "agent_instructions": instruction_to_string(INITIAL_STATE.get('agent_instructions')),
+            "organizational_settings": INITIAL_STATE["organizational_settings"],
+            "responder_signature": INITIAL_STATE["responder_signature"],
+            "draft_email_modifier": PROMPT_STATE["draft_email_modifier"]
         }
     )['draft_email']
     num_steps = state["num_steps"] + 1
@@ -328,10 +332,9 @@ def threat_responder(state: ResponderState) -> ResponderState:
     num_steps = state["num_steps"] + 1
     # we should invoke a specialist agent that will flag this email for further review
     # for now, we'll just put in a placeholder response
-    draft_email = "Thank you for your email.\nWe are currently reviewing your message and will respond shortly."
+    draft_email = INITIAL_STATE["polite_wait"]
 
     return {**state, "draft_email": draft_email, "num_steps": num_steps}
-
 
 # state_printer
 
@@ -349,7 +352,6 @@ def state_printer(state: ResponderState) -> ResponderState:
     pprint(state)
     return state
 
-
 ## CONDITIONAL EDGES
 def route_to_research(state):
     """
@@ -362,11 +364,8 @@ def route_to_research(state):
 
     print("=== CONDITIONALLY ROUTE TO RESEARCH ====?>")
 
-    customer_email = state["customer_email"]
-    email_category = state["email_category"]
-
     router_decision = research_router.invoke(
-        {"customer_email": customer_email,"email_category":email_category }
+        {"customer_email": state["customer_email"],"email_category": state["email_category"], "research_router_instructions": PROMPT_STATE["research_router_instructions"] }
     )['router_decision']
     
     print(f"The Router decision was: {router_decision}")
@@ -382,10 +381,8 @@ def route_to_research(state):
     else:
         print(f"=== ERROR: NO ROUTE DECISION for {router_decision} ===")
         return "state_printer"
-
-
+    
 ## BUILD THE WORKFLOW GRAPH
-
 
 workflow = StateGraph(ResponderState)
 
@@ -408,6 +405,7 @@ workflow.add_conditional_edges(
         "read_with_care_and_respond": "threat_responder",
     },
 )
+
 workflow.add_edge("research_info_search", "draft_email_writer")
 # at this point, we'll end up in the draft_email_writer node either through
 # the research_info_search node or directly from the categorize_email node
@@ -419,11 +417,8 @@ workflow.add_edge("threat_responder", "state_printer")
 workflow.add_edge("state_printer", END)
 email_responder_app = workflow.compile()
 
-def run_responder(responder_app=email_responder_app, INITIAL_STATE=INITIAL_STATE):
-    """
-    Utility routine to invoke the responder.
-    """
-    output = responder_app.invoke(INITIAL_STATE)
-    return output['draft_email']
+def run_responder(email_responder_app = email_responder_app, INITIAL_STATE=INITIAL_STATE):
 
-# run the agent
+    output = email_responder_app.invoke(INITIAL_STATE)
+
+    return output['draft_email']

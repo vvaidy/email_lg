@@ -1,6 +1,8 @@
 import streamlit as st
 from csagents import INITIAL_STATE
 from helper import statechange
+import os
+import sys
 
 st.markdown("Model Changer")
 
@@ -16,4 +18,5 @@ with input_column:
     st.session_state.model_index = model_options.index(model)
     if st.button("Persist"):
         statechange(INITIAL_STATE, "model", model, True)
-st.text("A 'Persist' and a restart of the program is needed to change models")
+
+st.text("A 'Persist' and a restart of the program is needed currently to change models")
