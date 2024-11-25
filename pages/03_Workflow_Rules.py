@@ -31,7 +31,7 @@ if st.button("Persist", key="research_router_button"):
 
 search_keyword = st.text_area("Add additional instructions for the search function", st.session_state.search_keyword_modifier, height=200)
 if st.button("Persist", key= "search_keyword_button"):
-    statechange(PROMPT_STATE, "search_keyword_modifier", research_router, True)
+    statechange(PROMPT_STATE, "search_keyword_modifier", search_keyword, True)
 
 draft_email = st.text_area("Add additional instructions for the draft email function", st.session_state.draft_email_modifier, height=200)
 if st.button("Persist", key= "draft_email_button"):

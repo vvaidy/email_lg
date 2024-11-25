@@ -6,8 +6,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-from csagents import run_responder, INITIAL_STATE
 from helper import *
+# New run_responder function that uses functions that are grouped together in a better way to turn into nodes...
+# WIP to be able to make your own nodes
+from TestCreatingNodes import run_responder_test, INITIAL_STATE
 
 if 'customer_email' not in st.session_state:
     st.session_state.customer_email = INITIAL_STATE["customer_email"]
@@ -27,6 +29,6 @@ with input_column:
         if st.button("Respond"):
             with st.spinner("Generating Response..."):
                 statechange(INITIAL_STATE,"customer_email", st.session_state.customer_email, False)
-                response = run_responder()
+                response = run_responder_test()
             with output_column:
                 st.info(response)
