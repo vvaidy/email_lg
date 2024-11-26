@@ -6,36 +6,29 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-from csagents import run_responder, INITIAL_STATE
+from helper import *
+# New run_responder function that uses functions that are grouped together in a better way to turn into nodes...
+# WIP to be able to make your own nodes
+from TestCreatingNodes import run_responder_test, INITIAL_STATE
 
+if 'customer_email' not in st.session_state:
+    st.session_state.customer_email = INITIAL_STATE["customer_email"]
 
-INITIAL_STATE["customer_email"] = """
-Hi There,
-
-I had a wonderful time at your resort last week. The only glitch was that I had
-a poor experience at the front desk with the lady there, I think her name
-was Eleanor Rigby. If you like, you could check with Father MacKenzie who witnessed
-the entire incident.
-
-Other than that I had a wonderful time although I have to say that the rain did
-put quite a damper on things. What might be a better time for me to visit?
-I like to follow the sun!
-
-Paul
-"""
 st.set_page_config(layout="wide")
 
 st.title("Customer Service Workflow Example")
-left_column, right_column = st.columns(2)
+input_column, output_column = st.columns(2)
 
-
-with left_column:
-    customer_email = st.text_area(
-        "Customer Email", INITIAL_STATE["customer_email"],
+with input_column:
+    cust_email = st.text_area(
+        "Customer Email", st.session_state.customer_email,
         height=320)
-    if st.button("Respond"):
-        with st.spinner("Generating Response..."):
-            INITIAL_STATE["customer_email"] = customer_email
-            response = run_responder()
-        with right_column:
-            st.info(response)
+    st.session_state.customer_email = cust_email
+    respond_button, save_button, saved_message = st.columns(3)
+    with respond_button:
+        if st.button("Respond"):
+            with st.spinner("Generating Response..."):
+                statechange(INITIAL_STATE,"customer_email", st.session_state.customer_email, False)
+                response = run_responder_test()
+            with output_column:
+                st.info(response)
